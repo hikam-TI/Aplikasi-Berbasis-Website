@@ -1,518 +1,129 @@
-<!-- Save as index.html and open in a browser -->
 <!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LinguaSpark — A Language Learning Demo</title>
-  <meta name="description" content="LinguaSpark — language learning demo inspired by modern micro-learning apps.">
-  <style>
-    /* ---------- Base / Reset ---------- */
-    :root{
-      --bg: #0f1724;
-      --card: #0b1220;
-      --muted: #94a3b8;
-      --accent1: #6ee7b7;
-      --accent2: #60a5fa;
-      --accent3: #f472b6;
-      --glass: rgba(255,255,255,0.04);
-      --glass-2: rgba(255,255,255,0.02);
-      --success: #10b981;
-      --danger: #ef4444;
-      --radius: 14px;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    }
-    *{box-sizing:border-box}
-    html,body,#app{height:100%}
-    body{
-      margin:0;
-      background: linear-gradient(180deg,#071026 0%, #07112b 50%, #041022 100%);
-      color:#e6eef8;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      padding:28px;
-    }
-
-    /* ---------- Layout ---------- */
-    .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:320px 1fr;gap:28px;align-items:start}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{
-      width:56px;height:56px;border-radius:12px;
-      background:linear-gradient(135deg,var(--accent1),var(--accent2));
-      display:grid;place-items:center;font-weight:700;color:#042024;font-size:20px;
-      box-shadow:0 6px 20px rgba(0,0,0,0.6);
-    }
-    h1{font-size:20px;margin:0}
-    p.lead{margin:0;color:var(--muted);font-size:13px}
-
-    /* ---------- Sidebar ---------- */
-    .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px;border-radius:var(--radius);border:1px solid rgba(255,255,255,0.03)}
-    .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-    .stat{background:var(--glass);padding:10px;border-radius:12px;min-width:88px;text-align:center;border:1px solid rgba(255,255,255,0.02)}
-    .stat .big{font-weight:700;font-size:18px}
-    .controls{display:flex;gap:8px;margin-top:10px}
-    button.btn{background:linear-gradient(90deg,var(--accent2),var(--accent1));border:none;color:#031025;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 8px 18px rgba(2,6,23,0.6)}
-    button.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);box-shadow:none}
-
-    /* ---------- Course / Map ---------- */
-    .map{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-    .unit{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.012)); padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
-    .unit h3{margin:0 0 8px 0;font-size:16px}
-    .lesson-list{display:grid;gap:8px}
-    .lesson{
-      display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:10px;background:var(--glass-2);cursor:pointer;border:1px solid rgba(255,255,255,0.02);
-      transition:transform .12s ease, box-shadow .12s ease;
-    }
-    .lesson:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(2,6,23,0.6)}
-    .lesson .meta{display:flex;align-items:center;gap:12px}
-    .badge{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-weight:700;background:linear-gradient(90deg,var(--accent3),var(--accent1));color:#051018}
-    .lesson .title{font-weight:600}
-    .done{outline:3px solid rgba(34,197,94,0.12);box-shadow:0 8px 30px rgba(16,185,129,0.06)}
-
-    /* ---------- Content area ---------- */
-    .content{min-height:60vh}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px;border-radius:16px;border:1px solid rgba(255,255,255,0.03)}
-    .center{display:grid;place-items:center}
-    .big-cta{font-size:22px;margin-bottom:12px}
-    .leaderboard{display:grid;gap:8px;margin-top:12px}
-    .leadrow{display:flex;justify-content:space-between;gap:12px;padding:8px;border-radius:10px;background:var(--glass);align-items:center}
-
-    /* ---------- Player modal ---------- */
-    .player{
-      position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(820px,96%);z-index:60;
-      box-shadow:0 20px 60px rgba(2,6,23,0.8);
-    }
-    .overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(1,2,6,0.6), rgba(1,2,6,0.8));z-index:50}
-    .q{padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.03)}
-
-    /* ---------- Buttons / inputs ---------- */
-    .choices{display:grid;gap:8px;margin-top:8px}
-    .choice{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;background:transparent}
-    .choice.selected{outline:2px solid rgba(96,165,250,0.22);background:linear-gradient(90deg, rgba(96,165,250,0.06), transparent)}
-    input[type="text"]{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-    .token{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.03);margin:6px;cursor:pointer}
-
-    /* ---------- Helpers ---------- */
-    .muted{color:var(--muted);font-size:13px}
-    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);font-weight:600}
-    footer{opacity:0.6;margin-top:18px;text-align:center;font-size:13px;color:var(--muted)}
-    @media (max-width:880px){ .wrap{grid-template-columns:1fr; padding-bottom:70px} .sidebar{order:2} }
-  </style>
+  <title>LinguaSpark — Full (Login & Learning)</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
-    <header>
-      <div class="brand">
-        <div class="logo">LS</div>
-        <div>
-          <h1>LinguaSpark</h1>
-          <p class="lead">Belajar bahasa lewat micro-lessons — orisinal & ringan.</p>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <div class="pill" id="streak">🔥 Streak: 0</div>
-        <div class="pill" id="xp">0 XP</div>
-        <div class="pill" id="hearts">♥ 5</div>
-      </div>
-    </header>
-
-    <div class="wrap">
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+  <div id="root">
+    <!-- AUTH SCREENS -->
+    <main id="authScreens" class="center-column">
+      <div class="auth-card card">
+        <div class="brand">
+          <div class="logo">LS</div>
           <div>
-            <div style="font-weight:700">Halo, <span id="userName">Tamu</span></div>
-            <div class="muted" style="font-size:13px">Pilih pelajaran dan mulai belajar</div>
+            <h1>LinguaSpark</h1>
+            <p class="muted">Belajar bahasa — orisinal, ringan, & responsif</p>
           </div>
-          <button class="btn ghost" id="resetBtn" title="Reset progress">Reset</button>
         </div>
 
-        <div class="card" style="margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="muted">Progress</div>
-              <div style="font-weight:700;font-size:18px" id="progressText">0 / 0 lessons</div>
-            </div>
-            <div style="width:120px">
-              <div style="height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden">
-                <div id="progressBar" style="height:100%;background:linear-gradient(90deg,var(--accent1),var(--accent2));width:0%"></div>
+        <div class="tabs">
+          <button id="tabLogin" class="tab active">Login</button>
+          <button id="tabRegister" class="tab">Daftar</button>
+        </div>
+
+        <section id="panelLogin" class="panel">
+          <input id="loginUser" placeholder="Username" />
+          <input id="loginPass" type="password" placeholder="Password" />
+          <div class="row">
+            <button id="btnLogin" class="btn">Masuk</button>
+            <button id="btnFillDemo" class="btn ghost">Isi Demo</button>
+          </div>
+        </section>
+
+        <section id="panelRegister" class="panel hidden">
+          <input id="regUser" placeholder="Pilih username" />
+          <input id="regPass" type="password" placeholder="Pilih password" />
+          <input id="regName" placeholder="Nama tampilan (opsional)" />
+          <div class="row">
+            <button id="btnRegister" class="btn">Buat Akun</button>
+            <button id="btnBackLogin" class="btn ghost">Kembali</button>
+          </div>
+        </section>
+
+        <p class="muted small">Data akun disimpan lokal di browser (tanpa server). Cocok untuk demo / penelitian.</p>
+      </div>
+    </main>
+
+    <!-- APP -->
+    <div id="app" class="hidden">
+      <header class="app-header">
+        <div class="left">
+          <div class="logo small">LS</div>
+          <div>
+            <div class="app-title">LinguaSpark</div>
+            <div class="muted small" id="courseTitle">—</div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="pill" id="streak">🔥 0</div>
+          <div class="pill" id="xp">0 XP</div>
+          <div class="pill" id="hearts">♥ 5</div>
+          <div class="userMenu">
+            <span id="displayName">Tamu</span>
+            <button id="btnProfile" class="btn ghost">Profil</button>
+            <button id="btnLogout" class="btn ghost">Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="container">
+        <aside class="sidebar card">
+          <div class="sidebar-section">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="muted small">Halo</div>
+                <div id="sidebarName" style="font-weight:700">Tamu</div>
               </div>
+              <button id="resetProgress" class="btn ghost">Reset</button>
             </div>
           </div>
-          <div style="margin-top:12px" class="muted">Hearts dipakai saat salah — bisa diisi ulang di toko.</div>
-        </div>
 
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div class="muted">Toko</div>
-            <div class="muted">Gratis demo</div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn" id="buyHeart">Beli ♥</button>
-            <button class="btn ghost" id="themeToggle">Mode Gelap</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px" class="muted">Leaderboard (demo)</div>
-        <div class="leaderboard" id="leaderboard">
-          <!-- Filled by JS -->
-        </div>
-      </aside>
-
-      <!-- CONTENT -->
-      <main class="content">
-        <section class="map" id="courseMap" aria-label="Course map">
-          <!-- Units & lessons injected by JS -->
-        </section>
-
-        <section style="margin-top:18px">
-          <div class="card">
-            <div class="big-cta">Latihan Cepat</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn" id="quickPractice">Mulai Random 5 Soal</button>
-              <button class="btn ghost" id="viewProfile">Profil</button>
+          <div class="sidebar-section">
+            <div class="muted small">Progress</div>
+            <div id="progressText" style="font-weight:700">0 / 0 lessons</div>
+            <div class="progressBar"><div id="progressFill" style="width:0%"></div></div>
+            <div class="muted small">Toko / Tema</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="buyHeart" class="btn">Beli ♥</button>
+              <button id="openShop" class="btn ghost">Toko</button>
             </div>
           </div>
-        </section>
-      </main>
+
+          <div class="sidebar-section">
+            <div class="muted small">Leaderboard (demo)</div>
+            <div id="leaderboard"></div>
+          </div>
+        </aside>
+
+        <main class="main card">
+          <section id="map" class="map"></section>
+
+          <section class="card mt">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:800">Latihan Cepat</div>
+              <div class="muted small">Ambil 5 soal random</div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <button id="quickBtn" class="btn">Mulai Latihan</button>
+              <button id="profileBtn" class="btn ghost">Profil</button>
+            </div>
+          </section>
+
+        </main>
+      </div>
+
+      <footer class="muted small center">LinguaSpark — versi penelitian/akademik (data lokal).</footer>
     </div>
 
-    <footer>LinguaSpark — Original demo. Tidak menyalin merek apapun.</footer>
+    <!-- PROFILE / SETTINGS MODAL -->
+    <div id="modalRoot"></div>
+
   </div>
 
-  <!-- Player / Modal Templates -->
-  <div id="overlay-root"></div>
-
-  <script>
-  /****************************************************************
-   * LinguaSpark — Single file language learning demo
-   * Features:
-   * - Course map, start lesson
-   * - Challenge types: mc, translate, arrange, listen (TTS)
-   * - XP, hearts, streak (localStorage)
-   * - Progress persistence
-   ****************************************************************/
-
-  // ---------- Mock course data (simple, extendable) ----------
-  const COURSE = {
-    code: 'id-en',
-    title: 'Bahasa Indonesia → English',
-    units: [
-      {
-        id: 'u1',
-        title: 'Dasar 1',
-        lessons: [
-          {
-            id: 'l1',
-            title: 'Sapaan',
-            challenges: [
-              { type: 'mc', prompt: "Apa arti 'Selamat pagi'?", options: ['Good night','Good morning','Goodbye'], answer: 1 },
-              { type: 'translate', prompt: 'Terjemahkan: Terima kasih', direction: 'id-en', answer: 'thank you' },
-              { type: 'arrange', prompt: 'Susun: saya / suka / makan', tokens: ['saya','suka','makan'], answer: ['saya','suka','makan'] }
-            ]
-          },
-          {
-            id: 'l2',
-            title: 'Orang & Nama',
-            challenges: [
-              { type: 'mc', prompt: "'Orang' dalam bahasa Inggris adalah...", options: ['people','place','thing'], answer: 0 },
-              { type: 'translate', prompt: 'Terjemahkan: Saya pelajar', direction: 'id-en', answer: 'i am a student' },
-              { type: 'listen', prompt: "Dengarkan dan ketik: 'Good evening'", tts: 'Good evening', answer: 'good evening' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'u2',
-        title: 'Makanan',
-        lessons: [
-          {
-            id: 'l3',
-            title: 'Makanan Sehari-hari',
-            challenges: [
-              { type: 'mc', prompt: "'Nasi' adalah...", options: ['rice','noodle','bread'], answer: 0 },
-              { type: 'translate', prompt: 'Terjemahkan: Saya makan roti', direction: 'id-en', answer: 'i eat bread' }
-            ]
-          }
-        ]
-      }
-    ]
-  };
-
-  // ---------- Persistence helpers ----------
-  function loadState(){ // create default structure
-    const raw = localStorage.getItem('linguaspark:v1');
-    if(raw) return JSON.parse(raw);
-    const init = {
-      userName: 'Tamu',
-      xp: 0, hearts: 5, streak: {count:0,last:null},
-      completedLessons: {}, // lessonId => true
-      leaderboard: [{name:'Ayu',xp:980},{name:'Rizky',xp:870},{name:'Siti',xp:860}]
-    };
-    localStorage.setItem('linguaspark:v1', JSON.stringify(init));
-    return init;
-  }
-  function saveState(){ localStorage.setItem('linguaspark:v1', JSON.stringify(state)); }
-
-  let state = loadState();
-
-  // ---------- Utilities ----------
-  function q(sel, root=document){ return root.querySelector(sel); }
-  function qAll(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-  function norm(s){ return String(s || '').trim().toLowerCase().replace(/\s+/g,' '); }
-  function todayKey(){ return new Date().toISOString().slice(0,10); }
-
-  // ---------- UI rendering ----------
-  function renderHeader(){
-    q('#userName').textContent = state.userName;
-    q('#xp').textContent = state.xp + ' XP';
-    q('#hearts').textContent = '♥ ' + state.hearts;
-    q('#streak').textContent = '🔥 Streak: ' + state.streak.count;
-    // progress
-    const totalLessons = COURSE.units.flatMap(u => u.lessons).length;
-    const done = Object.keys(state.completedLessons).length;
-    q('#progressText').textContent = done + ' / ' + totalLessons + ' lessons';
-    const pct = Math.round((done/totalLessons)*100) || 0;
-    q('#progressBar').style.width = pct + '%';
-  }
-
-  function renderLeaderboard(){
-    const root = q('#leaderboard'); root.innerHTML = '';
-    const arr = [...state.leaderboard, {name: state.userName, xp: state.xp}];
-    arr.sort((a,b)=>b.xp-a.xp).slice(0,5).forEach((p,i)=>{
-      const el = document.createElement('div'); el.className='leadrow';
-      el.innerHTML = `<div style="display:flex;gap:12px;align-items:center"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(90deg,var(--accent2),var(--accent1));display:grid;place-items:center;font-weight:700">${i+1}</div><div>${p.name}</div></div><div style="font-weight:700">${p.xp} XP</div>`;
-      root.appendChild(el);
-    });
-  }
-
-  function renderCourseMap(){
-    const root = q('#courseMap'); root.innerHTML = '';
-    COURSE.units.forEach(unit=>{
-      const card = document.createElement('section'); card.className='unit card';
-      const h = document.createElement('h3'); h.textContent = unit.title; card.appendChild(h);
-      const lessons = document.createElement('div'); lessons.className='lesson-list';
-      unit.lessons.forEach(lesson=>{
-        const done = !!state.completedLessons[lesson.id];
-        const btn = document.createElement('div'); btn.className='lesson' + (done ? ' done' : '');
-        btn.innerHTML = `<div class="meta"><div class="badge">${lesson.title[0]||'L'}</div><div><div class="title">${lesson.title}</div><div class="muted">${lesson.challenges.length} tantangan</div></div></div><div class="muted">Mulai ▶</div>`;
-        btn.addEventListener('click',()=> startLesson(lesson));
-        lessons.appendChild(btn);
-      });
-      card.appendChild(lessons);
-      root.appendChild(card);
-    });
-  }
-
-  // ---------- Player / Quiz engine ----------
-  let playerState = null; // {lesson, index, mistakes, arranged}
-  function startLesson(lesson){
-    playerState = { lesson, index: 0, mistakes: 0, arranged: [] };
-    openPlayer();
-  }
-
-  function openPlayer(){
-    const overlay = document.createElement('div'); overlay.className='overlay'; overlay.id='overlay';
-    const player = document.createElement('div'); player.className='player card'; player.id='player';
-    overlay.appendChild(player);
-    document.body.appendChild(overlay);
-    renderPlayer();
-  }
-
-  function closePlayer(){
-    document.getElementById('overlay')?.remove();
-    playerState = null;
-  }
-
-  function renderPlayer(){
-    const root = q('#player');
-    if(!playerState) return;
-    const ch = playerState.lesson.challenges[playerState.index];
-    const total = playerState.lesson.challenges.length;
-    const pct = Math.round((playerState.index/total)*100);
-
-    root.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>
-          <div style="font-weight:800">${playerState.lesson.title}</div>
-          <div class="muted" style="font-size:13px">${playerState.index+1} / ${total} &middot; Mistakes: ${playerState.mistakes}</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="muted" style="font-size:13px">Progress</div>
-          <div style="width:120px">
-            <div style="height:8px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden">
-              <div style="height:100%;background:linear-gradient(90deg,var(--accent1),var(--accent2));width:${pct}%"></div>
-            </div>
-          </div>
-          <button class="btn ghost" id="endBtn">Tutup</button>
-        </div>
-      </div>
-      <div class="q">
-        <div style="font-weight:700;margin-bottom:8px">${ch.prompt}</div>
-        <div id="challengeArea"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-        <div class="muted">Hearts: ${state.hearts}</div>
-        <div style="display:flex;gap:8px">
-          <button class="btn ghost" id="skipBtn">Lewati (pakai ♥)</button>
-          <button class="btn" id="submitBtn">Kirim Jawaban</button>
-        </div>
-      </div>
-    `;
-
-    q('#endBtn').addEventListener('click', ()=>{ if(confirm('Tutup pelajaran?')) closePlayer(); });
-    q('#skipBtn').addEventListener('click', ()=>{ if(state.hearts>0){ state.hearts--; saveState(); renderHeader(); nextChallenge(false,true); } else alert('Tidak ada hearts tersisa'); });
-    // render challenge area by type
-    const area = q('#challengeArea');
-    if(ch.type === 'mc'){
-      const container = document.createElement('div'); container.className='choices';
-      ch.options.forEach((opt,i)=>{
-        const c = document.createElement('div'); c.className='choice'; c.textContent = opt;
-        c.addEventListener('click',()=>{ qAll('.choice',container).forEach(x=>x.classList.remove('selected')); c.classList.add('selected'); c.dataset.selected = i; });
-        container.appendChild(c);
-      });
-      area.appendChild(container);
-      q('#submitBtn').addEventListener('click', ()=> {
-        const sel = container.querySelector('.choice.selected');
-        if(!sel){ alert('Pilih jawaban dulu'); return; }
-        const picked = Number(sel.dataset.selected);
-        if(picked === ch.answer) correctAnswer(); else wrongAnswer();
-      });
-    } else if(ch.type === 'translate' || ch.type === 'listen'){
-      const input = document.createElement('input'); input.type='text'; input.placeholder = ch.direction==='id-en' ? 'Tulis jawaban dalam Bahasa Inggris' : 'Tulis jawaban';
-      area.appendChild(input);
-      if(ch.type === 'listen'){
-        const btn = document.createElement('button'); btn.className='btn ghost'; btn.style.marginTop='8px'; btn.textContent='▶ Putar Audio';
-        btn.addEventListener('click', ()=> speak(ch.tts || ch.answer));
-        area.appendChild(btn);
-      }
-      q('#submitBtn').addEventListener('click', ()=> {
-        const val = norm(input.value);
-        if(!val){ alert('Masukkan jawaban'); return; }
-        if(val === norm(ch.answer)) correctAnswer(); else wrongAnswer();
-      });
-    } else if(ch.type === 'arrange'){
-      const tokens = ch.tokens.slice().sort(()=>Math.random()-0.5);
-      const pool = document.createElement('div'); pool.style.marginBottom='8px';
-      tokens.forEach(t=>{
-        const el = document.createElement('span'); el.className='token'; el.textContent=t;
-        el.addEventListener('click', ()=> { if(!el.classList.contains('used')){ el.classList.add('used'); const picked = document.createElement('span'); picked.className='token'; picked.textContent=t; picked.addEventListener('click', ()=> { picked.remove(); el.classList.remove('used'); }); pool.appendChild(picked); }});
-        pool.appendChild(el);
-      });
-      const out = document.createElement('div'); out.className='muted'; out.style.marginTop='8px'; out.textContent='Ketuk kata di atas untuk menyusunnya; ketuk pada hasil untuk menghapus.';
-      area.appendChild(pool); area.appendChild(out);
-      q('#submitBtn').addEventListener('click', ()=> {
-        const picked = Array.from(pool.querySelectorAll('.token.used')).map(x=>x.textContent);
-        // But order of 'used' tokens depends; instead collect tokens appended to the pool as result nodes:
-        const arranged = Array.from(pool.querySelectorAll('.token')).filter(el=>el.classList.contains('used')).map(n=>n.textContent);
-        if(arranged.length === 0){ alert('Susun jawaban terlebih dahulu'); return; }
-        if(JSON.stringify(arranged) === JSON.stringify(ch.answer)) correctAnswer(); else wrongAnswer();
-      });
-    }
-
-    // helpers
-    function correctAnswer(){
-      // give xp; small formula: base 10, minus mistakes
-      const gained = Math.max(8, 12 - playerState.mistakes*2);
-      state.xp += gained;
-      // mark lesson completed when last question
-      nextChallenge(true,false,gained);
-    }
-    function wrongAnswer(){
-      state.hearts = Math.max(0, state.hearts - 1);
-      playerState.mistakes++;
-      saveState(); renderHeader();
-      if(playerState.mistakes >= 3 || state.hearts === 0){
-        alert('Pelajaran gagal — cobalah lagi nanti.');
-        closePlayer();
-      } else {
-        alert('Salah — nyawa berkurang.');
-      }
-    }
-  }
-
-  function nextChallenge(success=false, skipped=false, gained=0){
-    const lesson = playerState.lesson;
-    if(success || skipped){
-      // advance
-      if(playerState.index + 1 >= lesson.challenges.length){
-        // lesson finished
-        state.completedLessons[lesson.id] = true;
-        // streak handling
-        const today = todayKey();
-        if(state.streak.last !== today){
-          state.streak.count = (state.streak.last === new Date(Date.now()-86400000).toISOString().slice(0,10)) ? state.streak.count+1 : 1;
-          state.streak.last = today;
-        }
-        // xp already added in correctAnswer; if skipped, add small xp
-        if(skipped) state.xp += 4;
-        saveState(); renderHeader(); renderCourseMap(); renderLeaderboard();
-        alert('Selamat! Pelajaran selesai. XP +' + (gained || (skipped?4:10)));
-        closePlayer();
-        return;
-      } else {
-        playerState.index++;
-        saveState(); renderHeader();
-        renderPlayer();
-      }
-    }
-  }
-
-  // ---------- TTS ----------
-  function speak(text){
-    if(!('speechSynthesis' in window)){ alert('TTS tidak tersedia di browser ini'); return; }
-    const u = new SpeechSynthesisUtterance(text);
-    const voices = speechSynthesis.getVoices();
-    if(voices.length) {
-      // pick English-like voice if available
-      const prefer = voices.find(v=>/en-|en_/i.test(v.lang)) || voices[0];
-      u.voice = prefer;
-    }
-    speechSynthesis.cancel(); speechSynthesis.speak(u);
-  }
-
-  // ---------- Quick practice ----------
-  function quickPractice(){
-    // pick 5 random challenges across course
-    const all = COURSE.units.flatMap(u => u.lessons.flatMap(l => l.challenges.map(c => ({...c, lessonId:l.id})) ));
-    const pick = all.sort(()=>Math.random()-0.5).slice(0,5);
-    // create a temporary "lesson"
-    const lesson = { id:'quick-'+Date.now(), title:'Latihan Cepat', challenges: pick };
-    startLesson(lesson);
-  }
-
-  // ---------- Controls ----------
-
-  q('#resetBtn').addEventListener('click', ()=>{
-    if(confirm('Reset semua progress?')){ localStorage.removeItem('linguaspark:v1'); state = loadState(); renderAll(); alert('Reset selesai'); }
-  });
-  q('#buyHeart').addEventListener('click', ()=>{
-    state.hearts = Math.min(5, state.hearts + 1);
-    saveState(); renderHeader();
-  });
-  q('#quickPractice').addEventListener('click', quickPractice);
-  q('#viewProfile').addEventListener('click', ()=>{
-    const name = prompt('Nama tampil (kosong = Tamu)', state.userName);
-    if(name !== null){ state.userName = (name.trim() || 'Tamu'); saveState(); renderAll(); }
-  });
-
-  // allow pressing Enter to submit in player when input present
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter' && document.getElementById('player')){
-      const submit = document.getElementById('submitBtn');
-      if(submit) submit.click();
-    }
-  });
-
-  // ---------- Initialization ----------
-  function renderAll(){
-    renderHeader();
-    renderLeaderboard();
-    renderCourseMap();
-  }
-  renderAll();
-
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
