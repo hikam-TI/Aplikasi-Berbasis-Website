@@ -1,7 +1,7 @@
 // app.js - LinguaSpark full (local accounts + learning)
 // Penyimpanan: localStorage
 // Struktur penyimpanan:
-// localStorage['linguaspark:users'] = JSON.stringify({ username: { password, displayName, settings:{themePreset}, data:{xp,hearts,streak,completedLessons,leaderboard} } })
+// localStorage['linguaspark:users'] = JSON.stringify({ username: { password, displayName, settings:{themePreset}, data:{xp,hearts,streak,completedLessons,leaderboard,lastRefresh} } })
 // localStorage['linguaspark:active'] = username
 
 /* =================== Utilities =================== */
@@ -34,7 +34,8 @@ const DEMO_USERS = {
       hearts: 5,
       streak: {count:3, last: todayKey()},
       completedLessons: { l1:true, l3:true },
-      leaderboard: [{name:'Ayu',xp:980},{name:'Rizky',xp:870}]
+      leaderboard: [{name:'Ayu',xp:980},{name:'Rizky',xp:870}],
+      lastRefresh: null
     }
   }
 };
@@ -80,11 +81,16 @@ function ensureUserData(username){
   if(!users[username]) {
     users[username] = {
       password: btoa('123'), displayName: username,
-      settings:{theme:'presetA'}, data:{xp:0, hearts:5, streak:{count:0,last:null}, completedLessons:{}, leaderboard:[]}
+      settings:{theme:'presetA'}, data:{xp:0, hearts:5, streak:{count:0,last:null}, completedLessons:{}, leaderboard:[], lastRefresh: null}
     };
     saveUsers(users);
   }
 }
+
+/* =================== LOGIN ATTEMPT PROTECTION =================== */
+// track failed attempts per username in-memory. For persistence you could store in localStorage too.
+const loginAttempts = {}; // { username: { count: number, blockedUntil: timestamp } }
+// usage: increment on fail, block when count >= 3 for a minute
 
 /* =================== UI wiring - AUTH =================== */
 const authScreens = $('#authScreens');
@@ -100,7 +106,7 @@ $('#btnRegister').addEventListener('click', ()=>{
   const name = $('#regName').value.trim() || u;
   if(!u || !p){ alert('Masukkan username & password'); return; }
   if(users[u]){ alert('Username sudah terpakai'); return; }
-  users[u] = { password: btoa(p), displayName: name, settings:{theme:'presetA'}, data:{xp:0,hearts:5,streak:{count:0,last:null},completedLessons:{},leaderboard:[]} };
+  users[u] = { password: btoa(p), displayName: name, settings:{theme:'presetA'}, data:{xp:0,hearts:5,streak:{count:0,last:null},completedLessons:{},leaderboard:[], lastRefresh: null} };
   saveUsers(users);
   alert('Akun dibuat. Silakan login.');
   // switch to login
@@ -113,8 +119,31 @@ $('#btnLogin').addEventListener('click', ()=>{
   const u = norm($('#loginUser').value);
   const p = $('#loginPass').value;
   if(!u || !p){ alert('Masukkan username & password'); return; }
+
+  // anti brute-force: check block first
+  if(loginAttempts[u] && loginAttempts[u].blockedUntil && loginAttempts[u].blockedUntil > Date.now()){
+    const wait = Math.ceil((loginAttempts[u].blockedUntil - Date.now())/1000);
+    alert(`Terlalu banyak percobaan gagal. Coba lagi dalam ${wait} detik.`);
+    return;
+  }
+
   const record = users[u];
-  if(!record || record.password !== btoa(p)){ alert('Username atau password salah'); return; }
+  if(!record || record.password !== btoa(p)){
+    // increment attempts
+    loginAttempts[u] = loginAttempts[u] || {count:0, blockedUntil: 0};
+    loginAttempts[u].count++;
+    if(loginAttempts[u].count >= 3){
+      loginAttempts[u].blockedUntil = Date.now() + 60_000; // 1 minute block
+      loginAttempts[u].count = 0;
+      alert('Terlalu banyak percobaan salah. Akun diblokir sementara (1 menit).');
+    } else {
+      alert('Username atau password salah');
+    }
+    return;
+  }
+
+  // success
+  loginAttempts[u] = {count:0, blockedUntil:0};
   active = u;
   setActiveUser(u);
   initApp();
@@ -128,7 +157,25 @@ function initApp(){
   if(!active) return;
   authScreens.classList.add('hidden');
   appView.classList.remove('hidden');
+  // Ensure the user data exists (fallback)
+  ensureUserData(active);
+  // DAILY REFILL: refill hearts once per day per user
+  dailyRefreshForUser(active);
   renderAll();
+}
+
+/* =================== Daily refill =================== */
+function dailyRefreshForUser(username){
+  const user = users[username];
+  if(!user) return;
+  const today = todayKey();
+  if(user.data.lastRefresh !== today){
+    // refill full hearts
+    user.data.hearts = 5;
+    user.data.lastRefresh = today;
+    users[username] = user;
+    saveUsers(users);
+  }
 }
 
 /* =================== Render functions =================== */
@@ -206,6 +253,8 @@ function renderPlayer(){
   const ch = playerState.lesson.challenges[playerState.index];
   const total = playerState.lesson.challenges.length;
   const pct = Math.round((playerState.index/total)*100);
+  const userHearts = (currentUserObj().data.hearts||0);
+
   player.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div>
@@ -226,7 +275,7 @@ function renderPlayer(){
       <div id="challengeArea"></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-      <div class="muted">Hearts: ${(currentUserObj().data.hearts||0)}</div>
+      <div class="muted">Hearts: ${userHearts}</div>
       <div style="display:flex;gap:8px">
         <button id="skipQ" class="btn ghost">Lewati (pakai ♥)</button>
         <button id="submitQ" class="btn">Kirim Jawaban</button>
@@ -349,7 +398,7 @@ function nextChallenge(succeeded=false, skipped=false, gained=0){
 
 /* =================== TTS helper =================== */
 function speak(text){
-  if(!('speechSynthesis' in window)){ alert('TTS tidak tersedia'); return; }
+  if(!('speechSynthesis' in window)){ alert('TTS tidak tersedia di browser ini'); return; }
   const u = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
   if(voices.length){
@@ -389,6 +438,7 @@ function openProfile(){
         </div>
         <div style="margin-top:12px;display:flex;gap:8px">
           <button id="saveProfile" class="btn">Simpan</button>
+          <button id="rechargeHearts" class="btn ghost">Isi Ulang ♥</button>
           <button id="logoutNow" class="btn ghost">Logout</button>
         </div>
       </div>
@@ -408,6 +458,17 @@ function openProfile(){
       const t = b.dataset.theme;
       users[active].settings.theme = t; saveUsers(users); renderAll();
     });
+  });
+
+  // recharge hearts handler
+  $('#rechargeHearts').addEventListener('click', ()=>{
+    const userNow = currentUserObj();
+    if(!userNow) return;
+    userNow.data.hearts = 5;
+    users[active] = userNow; saveUsers(users);
+    alert('Hearts telah diisi ulang!');
+    modal.remove();
+    renderAll();
   });
 }
 
