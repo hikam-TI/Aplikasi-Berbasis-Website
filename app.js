@@ -1,13 +1,12 @@
-// app.js - LinguaSpark full (local accounts + learning)
+// app.js - LinguaSpark full (local accounts + learning + hearts + login fix)
 // Penyimpanan: localStorage
 // Struktur penyimpanan:
-// localStorage['linguaspark:users'] = JSON.stringify({ username: { password, displayName, settings:{themePreset}, data:{xp,hearts,streak,completedLessons,leaderboard,lastRefresh} } })
+// localStorage['linguaspark:users'] = JSON.stringify({ username: { password, displayName, settings:{themePreset}, data:{xp,hearts,streak,completedLessons,leaderboard} } })
 // localStorage['linguaspark:active'] = username
 
 /* =================== Utilities =================== */
 const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
-const norm = s => String(s||'').trim().toLowerCase();
 const todayKey = () => new Date().toISOString().slice(0,10);
 
 /* =================== Storage =================== */
@@ -34,8 +33,7 @@ const DEMO_USERS = {
       hearts: 5,
       streak: {count:3, last: todayKey()},
       completedLessons: { l1:true, l3:true },
-      leaderboard: [{name:'Ayu',xp:980},{name:'Rizky',xp:870}],
-      lastRefresh: null
+      leaderboard: [{name:'Ayu',xp:980},{name:'Rizky',xp:870}]
     }
   }
 };
@@ -81,32 +79,42 @@ function ensureUserData(username){
   if(!users[username]) {
     users[username] = {
       password: btoa('123'), displayName: username,
-      settings:{theme:'presetA'}, data:{xp:0, hearts:5, streak:{count:0,last:null}, completedLessons:{}, leaderboard:[], lastRefresh: null}
+      settings:{theme:'presetA'}, data:{xp:0, hearts:5, streak:{count:0,last:null}, completedLessons:{}, leaderboard:[]}
     };
     saveUsers(users);
   }
 }
-
-/* =================== LOGIN ATTEMPT PROTECTION =================== */
-// track failed attempts per username in-memory. For persistence you could store in localStorage too.
-const loginAttempts = {}; // { username: { count: number, blockedUntil: timestamp } }
-// usage: increment on fail, block when count >= 3 for a minute
 
 /* =================== UI wiring - AUTH =================== */
 const authScreens = $('#authScreens');
 const appView = $('#app');
 const modalRoot = $('#modalRoot');
 
-$('#tabLogin').addEventListener('click', ()=> { $('#panelLogin').classList.remove('hidden'); $('#panelRegister').classList.add('hidden'); $('#tabLogin').classList.add('active'); $('#tabRegister').classList.remove('active'); });
-$('#tabRegister').addEventListener('click', ()=> { $('#panelRegister').classList.remove('hidden'); $('#panelLogin').classList.add('hidden'); $('#tabRegister').classList.add('active'); $('#tabLogin').classList.remove('active'); });
+$('#tabLogin').addEventListener('click', ()=> { 
+  $('#panelLogin').classList.remove('hidden'); 
+  $('#panelRegister').classList.add('hidden'); 
+  $('#tabLogin').classList.add('active'); 
+  $('#tabRegister').classList.remove('active'); 
+});
+$('#tabRegister').addEventListener('click', ()=> { 
+  $('#panelRegister').classList.remove('hidden'); 
+  $('#panelLogin').classList.add('hidden'); 
+  $('#tabRegister').classList.add('active'); 
+  $('#tabLogin').classList.remove('active'); 
+});
 
 $('#btnRegister').addEventListener('click', ()=>{
-  const u = norm($('#regUser').value);
+  const u = $('#regUser').value.trim();   // FIX: tidak pakai lowercase
   const p = $('#regPass').value;
   const name = $('#regName').value.trim() || u;
   if(!u || !p){ alert('Masukkan username & password'); return; }
   if(users[u]){ alert('Username sudah terpakai'); return; }
-  users[u] = { password: btoa(p), displayName: name, settings:{theme:'presetA'}, data:{xp:0,hearts:5,streak:{count:0,last:null},completedLessons:{},leaderboard:[], lastRefresh: null} };
+  users[u] = { 
+    password: btoa(p), 
+    displayName: name, 
+    settings:{theme:'presetA'}, 
+    data:{xp:0,hearts:5,streak:{count:0,last:null},completedLessons:{},leaderboard:[]} 
+  };
   saveUsers(users);
   alert('Akun dibuat. Silakan login.');
   // switch to login
@@ -116,40 +124,21 @@ $('#btnRegister').addEventListener('click', ()=>{
 $('#btnBackLogin').addEventListener('click', ()=> $('#tabLogin').click());
 
 $('#btnLogin').addEventListener('click', ()=>{
-  const u = norm($('#loginUser').value);
+  const u = $('#loginUser').value.trim();   // FIX: tidak pakai lowercase
   const p = $('#loginPass').value;
   if(!u || !p){ alert('Masukkan username & password'); return; }
-
-  // anti brute-force: check block first
-  if(loginAttempts[u] && loginAttempts[u].blockedUntil && loginAttempts[u].blockedUntil > Date.now()){
-    const wait = Math.ceil((loginAttempts[u].blockedUntil - Date.now())/1000);
-    alert(`Terlalu banyak percobaan gagal. Coba lagi dalam ${wait} detik.`);
-    return;
-  }
-
   const record = users[u];
-  if(!record || record.password !== btoa(p)){
-    // increment attempts
-    loginAttempts[u] = loginAttempts[u] || {count:0, blockedUntil: 0};
-    loginAttempts[u].count++;
-    if(loginAttempts[u].count >= 3){
-      loginAttempts[u].blockedUntil = Date.now() + 60_000; // 1 minute block
-      loginAttempts[u].count = 0;
-      alert('Terlalu banyak percobaan salah. Akun diblokir sementara (1 menit).');
-    } else {
-      alert('Username atau password salah');
-    }
-    return;
+  if(!record || record.password !== btoa(p)){ 
+    alert('Username atau password salah'); 
+    return; 
   }
-
-  // success
-  loginAttempts[u] = {count:0, blockedUntil:0};
   active = u;
   setActiveUser(u);
   initApp();
 });
 $('#btnFillDemo').addEventListener('click', ()=> {
-  $('#loginUser').value = 'demo'; $('#loginPass').value = 'demo123';
+  $('#loginUser').value = 'demo'; 
+  $('#loginPass').value = 'demo123';
 });
 
 /* =================== App initialization =================== */
@@ -157,25 +146,7 @@ function initApp(){
   if(!active) return;
   authScreens.classList.add('hidden');
   appView.classList.remove('hidden');
-  // Ensure the user data exists (fallback)
-  ensureUserData(active);
-  // DAILY REFILL: refill hearts once per day per user
-  dailyRefreshForUser(active);
   renderAll();
-}
-
-/* =================== Daily refill =================== */
-function dailyRefreshForUser(username){
-  const user = users[username];
-  if(!user) return;
-  const today = todayKey();
-  if(user.data.lastRefresh !== today){
-    // refill full hearts
-    user.data.hearts = 5;
-    user.data.lastRefresh = today;
-    users[username] = user;
-    saveUsers(users);
-  }
 }
 
 /* =================== Render functions =================== */
